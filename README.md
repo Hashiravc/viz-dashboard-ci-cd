@@ -16,10 +16,12 @@ When building data dashboards in Python, developers and data scientists often fa
 
 - Do we pick **Seaborn** or **Matplotlib** for statistical rigor and publication-grade density estimations?
 - Do we pick **Bokeh** for high-framerate, hardware-accelerated HTML5 canvas interactivity with custom JavaScript hover tools?
-- Do we pick **Plotly** for rich declarative 3D plots, hierarchical sunburst diagrams, and reactive drill-downs?
+- Do we pick **Plotly** for rich declarative charts, hierarchical breakdowns, and reactive drill-downs?
 - And how do we unite these distinct engines into a single responsive web interface that is **automatically tested, containerized, and deployed to a public cloud or SaaS platform via CI/CD**?
 
 In this project, I set out to solve this dilemma by building a **Multi-Engine Visualization and Analytics Hub** orchestrating **Seaborn**, **Bokeh**, and **Plotly** inside **Streamlit**. Every commit to the repository triggers an automated **GitHub Actions CI/CD pipeline** that runs unit tests, validates container builds, and synchronizes deployment directly with a public cloud provider.
+
+![Dashboard Executive Overview](assets/01_dashboard_overview.png)
 
 ---
 
@@ -73,8 +75,35 @@ A production-ready data product requires the same DevOps discipline as any cloud
 
 ## 4. Implementation Deep-Dive
 
-### 4.1 Statistical Modeling: Seaborn & Matplotlib
-For statistical depth, I implemented Kernel Density Estimation (KDE) curves and feature covariance heatmaps:
+### 4.1 Interactive Exploratory Analysis & Executive Quadrant (Plotly)
+To solve the common challenge of overplotting when evaluating compensation against work-life balance, I built an **Executive Quadrant Matrix**. Rather than stacking hundreds of overlapping bubbles, this view aggregates data by Role and Seniority, mapping them against market medians to immediately identify optimal careers:
+
+![Executive Quadrant Matrix](assets/02_quadrant_matrix.png)
+
+```python
+import plotly.express as px
+import streamlit as st
+
+fig_quadrant = px.scatter(
+    agg_wlb,
+    x="avg_wlb",
+    y="avg_salary",
+    size="headcount",
+    color="job_title",
+    symbol="experience_level",
+    text="job_title",
+    title="<b>Executive Quadrant Matrix: Compensation vs. Work-Life Balance</b>",
+    template="plotly_dark",
+)
+fig_quadrant.add_hline(y=median_salary, line_dash="dash", annotation_text="Market Median Salary")
+fig_quadrant.add_vline(x=median_wlb, line_dash="dash", annotation_text="Median WLB")
+st.plotly_chart(fig_quadrant, use_container_width=True)
+```
+
+### 4.2 Statistical Modeling: Seaborn & Matplotlib
+For statistical exploration, Seaborn provides Kernel Density Estimation (KDE) curves, covariance matrices, and violin plots to analyze salary dispersion across remote work percentages:
+
+![Seaborn & Matplotlib Distributions](assets/03_seaborn_statistical.png)
 
 ```python
 import matplotlib.pyplot as plt
@@ -89,7 +118,7 @@ sns.histplot(
     hue="experience_level",
     kde=True,
     palette="mako",
-    alpha=0.4,
+    alpha=0.45,
     ax=ax,
 )
 ax.set_title("Kernel Density Estimation (KDE) of Tech Compensation")
@@ -97,23 +126,27 @@ st.pyplot(fig)
 plt.close(fig)
 ```
 
-### 4.2 High-Performance Web Canvas: Bokeh with HoverTools
-Bokeh generates an interactive HTML5 canvas capable of sub-millisecond hover inspections without triggering server round-trips:
+### 4.3 High-Performance Web Canvas: Bokeh with HoverTools
+Bokeh renders directly to an HTML5 canvas via BokehJS, providing hardware-accelerated vector plotting and zero-latency inspection tooltips:
+
+![Bokeh Interactive HTML5 Canvas](assets/04_bokeh_canvas.png)
 
 ```python
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource, HoverTool, NumeralTickFormatter
-import streamlit as st
+from bokeh.embed import file_html
+from bokeh.resources import CDN
+import streamlit.components.v1 as components
 
 source = ColumnDataSource(df)
 p = figure(
     title="Bokeh Canvas: Work-Life Balance vs. Annual Compensation",
     tools="pan,wheel_zoom,box_zoom,reset,save",
     background_fill_color="#1E293B",
-    width=900,
-    height=480,
+    sizing_mode="stretch_width",
+    height=460,
 )
-circle = p.scatter(x="work_life_balance", y="salary_usd", size=10, source=source, alpha=0.8)
+circle = p.scatter(x="work_life_balance", y="salary_usd", size=9, source=source, alpha=0.85)
 
 hover = HoverTool(
     renderers=[circle],
@@ -125,27 +158,15 @@ hover = HoverTool(
     ],
 )
 p.add_tools(hover)
-st.bokeh_chart(p, use_container_width=True)
+
+html_content = file_html(p, CDN, "Bokeh Plot")
+components.html(html_content, height=480)
 ```
 
-### 4.3 Declarative Drill-Down: Plotly Sunburst & Scatter
-Plotly handles multi-variable hierarchical breakdowns across countries, seniority tiers, and role categories:
+### 4.4 Data Explorer & CSV Export
+The platform includes an interactive data table with search filtering and direct one-click CSV export:
 
-```python
-import plotly.express as px
-import streamlit as st
-
-fig_sunburst = px.sunburst(
-    df,
-    path=["company_country", "experience_level", "job_title"],
-    values="salary_usd",
-    title="Global Talent Distribution Hierarchy",
-    template="plotly_dark",
-    color="salary_usd",
-    color_continuous_scale="Viridis",
-)
-st.plotly_chart(fig_sunburst, use_container_width=True)
-```
+![Data Explorer & Export](assets/05_data_explorer.png)
 
 ---
 
@@ -183,7 +204,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run Pytest Test Suite
-        run: pytest -v tests/
+        run: python -m pytest -v tests/
 
       - name: Validate Application Code Syntax
         run: python -m py_compile app.py data_loader.py
