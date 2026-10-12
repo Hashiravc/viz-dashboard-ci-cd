@@ -21,7 +21,6 @@ When building data dashboards in Python, developers and data scientists often fa
 
 In this project, I set out to solve this dilemma by building a **Multi-Engine Visualization and Analytics Hub** orchestrating **Seaborn**, **Bokeh**, and **Plotly** inside **Streamlit**. Every commit to the repository triggers an automated **GitHub Actions CI/CD pipeline** that runs unit tests, validates container builds, and synchronizes deployment directly with a public cloud provider.
 
-![Dashboard Executive Overview](assets/01_dashboard_overview.png)
 
 ---
 
