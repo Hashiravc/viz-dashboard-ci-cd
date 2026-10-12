@@ -28,7 +28,7 @@ jobs:
 
       - name: Run Pytest Test Suite
         run: |
-          pytest -v tests/
+          python -m pytest -v tests/
 
       - name: Validate Application Code Syntax
         run: |

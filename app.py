@@ -400,22 +400,45 @@ with tab_plotly:
         st.plotly_chart(fig_box, use_container_width=True)
 
     with pcol2:
-        # Hierarchical Treemap: Far easier to read and explore than a narrow sunburst
-        fig_tree = px.treemap(
-            df,
-            path=["company_country", "job_title", "experience_level"],
-            values="salary_usd",
-            title="<b>Global Talent Hierarchy (Country & Role Breakdown)</b>",
-            template="plotly_dark",
-            color="salary_usd",
+        country_agg = (
+            df.groupby("company_country")
+            .agg(
+                avg_salary=("salary_usd", "mean"),
+                headcount=("id", "count"),
+                top_role=("job_title", lambda x: x.mode()[0] if not x.empty else "N/A"),
+            )
+            .reset_index()
+            .sort_values("avg_salary", ascending=True)
+        )
+
+        fig_country = px.bar(
+            country_agg,
+            x="avg_salary",
+            y="company_country",
+            orientation="h",
+            color="avg_salary",
             color_continuous_scale="Viridis",
+            title="<b>Global Market: Mean Compensation by Country</b>",
+            labels={"avg_salary": "Average Salary (USD)", "company_country": "Country"},
+            text="avg_salary",
+            hover_data={"headcount": True, "top_role": True},
         )
-        fig_tree.update_layout(
+        fig_country.update_traces(
+            texttemplate="$%{x:,.0f}",
+            textposition="outside",
+            textfont=dict(size=11, color="#E2E8F0"),
+            marker=dict(line=dict(width=1, color="#1E293B")),
+        )
+        fig_country.update_layout(
             paper_bgcolor="#0F172A",
+            plot_bgcolor="#1E293B",
             font=dict(family="Inter, sans-serif", color="#F8FAFC"),
-            margin=dict(t=60, b=20, l=20, r=20),
+            xaxis=dict(tickprefix="$", gridcolor="#334155"),
+            yaxis=dict(gridcolor="#334155"),
+            margin=dict(t=60, b=50, l=40, r=60),
+            coloraxis_showscale=False,
         )
-        st.plotly_chart(fig_tree, use_container_width=True)
+        st.plotly_chart(fig_country, use_container_width=True)
 
     # -------------------------------------------------------------
     # INTUITIVE WORK-LIFE BALANCE & COMPENSATION ANALYSIS

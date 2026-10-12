@@ -1,5 +1,11 @@
 """Unit tests for the Multi-Tool Visualization Dashboard."""
 
+import sys
+from pathlib import Path
+
+# Ensure root directory is in python path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 import pytest
 from data_loader import generate_sample_data, filter_data
 
