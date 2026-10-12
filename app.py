@@ -400,43 +400,164 @@ with tab_plotly:
         st.plotly_chart(fig_box, use_container_width=True)
 
     with pcol2:
-        fig_sunburst = px.sunburst(
+        # Hierarchical Treemap: Far easier to read and explore than a narrow sunburst
+        fig_tree = px.treemap(
             df,
-            path=["company_country", "experience_level", "job_title"],
+            path=["company_country", "job_title", "experience_level"],
             values="salary_usd",
-            title="<b>Global Talent Hierarchy Distribution</b>",
+            title="<b>Global Talent Hierarchy (Country & Role Breakdown)</b>",
             template="plotly_dark",
             color="salary_usd",
             color_continuous_scale="Viridis",
         )
-        fig_sunburst.update_layout(
+        fig_tree.update_layout(
             paper_bgcolor="#0F172A",
             font=dict(family="Inter, sans-serif", color="#F8FAFC"),
             margin=dict(t=60, b=20, l=20, r=20),
         )
-        st.plotly_chart(fig_sunburst, use_container_width=True)
+        st.plotly_chart(fig_tree, use_container_width=True)
 
-    # Bubble Scatter
-    fig_scatter = px.scatter(
-        df,
-        x="work_life_balance",
-        y="salary_usd",
-        size="tech_satisfaction",
-        color="company_size",
-        hover_name="job_title",
-        facet_col="experience_level",
-        title="<b>Work-Life Balance vs. Compensation by Seniority Tier (Bubble Size = Tech Stack Satisfaction)</b>",
-        labels={"work_life_balance": "Work-Life Balance (1-5)", "salary_usd": "Salary (USD)", "company_size": "Company Scale"},
-        template="plotly_dark",
-        color_discrete_sequence=["#38BDF8", "#A78BFA", "#FB7185"],
+    # -------------------------------------------------------------
+    # INTUITIVE WORK-LIFE BALANCE & COMPENSATION ANALYSIS
+    # -------------------------------------------------------------
+    st.markdown("#### ⚖️ Work-Life Balance vs. Compensation Analysis")
+    
+    view_mode = st.radio(
+        "Display Mode:",
+        options=["🎯 Executive Quadrant Matrix (Aggregated by Role & Seniority)", "🔬 Micro Scatter Distribution (Individual Data Points + Trendline)"],
+        horizontal=True,
     )
-    fig_scatter.update_layout(
-        paper_bgcolor="#0F172A",
-        plot_bgcolor="#1E293B",
-        font=dict(family="Inter, sans-serif", color="#F8FAFC"),
-        margin=dict(t=60, b=40, l=40, r=20),
-    )
-    st.plotly_chart(fig_scatter, use_container_width=True)
+
+    median_salary = df["salary_usd"].median()
+    median_wlb = df["work_life_balance"].median()
+
+    if "Executive" in view_mode:
+        # Aggregate by Job Title & Experience for clean, zero-clutter insights
+        agg_wlb = (
+            df.groupby(["job_title", "experience_level"])
+            .agg(
+                avg_salary=("salary_usd", "mean"),
+                avg_wlb=("work_life_balance", "mean"),
+                tech_sat=("tech_satisfaction", "mean"),
+                headcount=("id", "count"),
+            )
+            .reset_index()
+        )
+
+        fig_quadrant = px.scatter(
+            agg_wlb,
+            x="avg_wlb",
+            y="avg_salary",
+            size="headcount",
+            color="job_title",
+            symbol="experience_level",
+            text="job_title",
+            title="<b>Executive Quadrant Matrix: Compensation vs. Work-Life Balance</b>",
+            labels={
+                "avg_wlb": "Average Work-Life Balance (1 to 5)",
+                "avg_salary": "Average Compensation (USD)",
+                "job_title": "Specialization",
+                "experience_level": "Seniority",
+                "headcount": "Engineers Count",
+            },
+            template="plotly_dark",
+            size_max=32,
+        )
+
+        fig_quadrant.update_traces(
+            textposition="top center",
+            textfont=dict(size=10, color="#E2E8F0"),
+            marker=dict(line=dict(width=1.5, color="#FFFFFF")),
+        )
+
+        # Add Quadrant Reference Lines
+        fig_quadrant.add_hline(
+            y=median_salary,
+            line_dash="dash",
+            line_color="#64748B",
+            annotation_text=f"Market Median Salary: ${median_salary:,.0f}",
+            annotation_position="bottom right",
+            annotation_font=dict(size=10, color="#94A3B8"),
+        )
+        fig_quadrant.add_vline(
+            x=median_wlb,
+            line_dash="dash",
+            line_color="#64748B",
+            annotation_text=f"Median WLB: {median_wlb:.1f}",
+            annotation_position="top left",
+            annotation_font=dict(size=10, color="#94A3B8"),
+        )
+
+        # Quadrant Explanatory Annotations
+        max_y = agg_wlb["avg_salary"].max() * 1.05
+        min_y = agg_wlb["avg_salary"].min() * 0.95
+        max_x = agg_wlb["avg_wlb"].max() + 0.1
+        min_x = agg_wlb["avg_wlb"].min() - 0.1
+
+        fig_quadrant.add_annotation(
+            x=max_x, y=max_y, text="🚀 High Pay & High Balance", showarrow=False,
+            font=dict(color="#10B981", size=11, family="Inter")
+        )
+        fig_quadrant.add_annotation(
+            x=min_x, y=max_y, text="⚠️ High Pay & High Demands", showarrow=False,
+            font=dict(color="#F59E0B", size=11, family="Inter")
+        )
+
+        fig_quadrant.update_layout(
+            paper_bgcolor="#0F172A",
+            plot_bgcolor="#1E293B",
+            font=dict(family="Inter, sans-serif", color="#F8FAFC"),
+            yaxis=dict(tickprefix="$", gridcolor="#334155"),
+            xaxis=dict(gridcolor="#334155"),
+            margin=dict(t=60, b=40, l=40, r=30),
+            height=540,
+        )
+        st.plotly_chart(fig_quadrant, use_container_width=True)
+
+    else:
+        # Micro scatter with subtle point size, high opacity, and trendline
+        fig_scatter = px.scatter(
+            df,
+            x="work_life_balance",
+            y="salary_usd",
+            color="experience_level",
+            hover_name="job_title",
+            hover_data={"company_country": True, "remote_ratio": True, "tech_satisfaction": True},
+            title="<b>Individual Distribution: Work-Life Balance vs. Compensation with Market Trendline</b>",
+            labels={"work_life_balance": "Work-Life Balance (1-5)", "salary_usd": "Compensation (USD)", "experience_level": "Seniority"},
+            template="plotly_dark",
+            opacity=0.6,
+            color_discrete_sequence=["#38BDF8", "#818CF8", "#F472B6", "#FBBF24"],
+        )
+        fig_scatter.update_traces(marker=dict(size=7, line=dict(width=0.5, color="#1E293B")))
+
+        # Add clean linear trendline via numpy
+        if len(df) > 1:
+            x_vals = df["work_life_balance"].to_numpy()
+            y_vals = df["salary_usd"].to_numpy()
+            m, b = np.polyfit(x_vals, y_vals, 1)
+            x_trend = np.linspace(x_vals.min(), x_vals.max(), 50)
+            y_trend = m * x_trend + b
+            fig_scatter.add_trace(
+                go.Scatter(
+                    x=x_trend,
+                    y=y_trend,
+                    mode="lines",
+                    name="Linear Trendline",
+                    line=dict(color="#F43F5E", width=2.5, dash="dash"),
+                )
+            )
+
+        fig_scatter.update_layout(
+            paper_bgcolor="#0F172A",
+            plot_bgcolor="#1E293B",
+            font=dict(family="Inter, sans-serif", color="#F8FAFC"),
+            yaxis=dict(tickprefix="$", gridcolor="#334155"),
+            xaxis=dict(gridcolor="#334155"),
+            margin=dict(t=60, b=40, l=40, r=20),
+            height=500,
+        )
+        st.plotly_chart(fig_scatter, use_container_width=True)
 
 
 # ------------------------------------------
