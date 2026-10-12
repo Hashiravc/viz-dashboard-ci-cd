@@ -7,7 +7,7 @@ cover_image: "https://raw.githubusercontent.com/Hashiravc/viz-dashboard-ci-cd/ma
 canonical_url: "https://github.com/Hashiravc/viz-dashboard-ci-cd"
 ---
 
-# 📊 Building Multi-Engine Data Dashboards with Bokeh, Seaborn, and Plotly: Automated CI/CD Deployment to the Public Cloud
+# Building Multi-Engine Data Dashboards with Bokeh, Seaborn, and Plotly: Automated CI/CD Deployment to the Public Cloud
 
 [![CI/CD Dashboard Pipeline](https://github.com/Hashiravc/viz-dashboard-ci-cd/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Hashiravc/viz-dashboard-ci-cd/actions/workflows/ci-cd.yml)
 [![Live Cloud App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://viz-dashboard-ci-cd.streamlit.app/)
