@@ -1,9 +1,11 @@
-"""Interactive Multi-Tool Data Visualization & Analytics Dashboard.
+"""Interactive Multi-Engine Data Visualization & Analytics Hub.
 
-Demonstrating Bokeh, Seaborn, Matplotlib, Plotly, and Streamlit
-with Automated CI/CD and Public Cloud Deployment.
+Demonstrating Bokeh, Seaborn, Matplotlib, and Plotly orchestrated with Streamlit,
+backed by automated GitHub Actions CI/CD and Cloud Deployment.
+Authored by Hashira Belén Vargas Candia.
 """
 
+import io
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -11,13 +13,18 @@ import plotly.express as px
 import plotly.graph_objects as go
 import seaborn as sns
 import streamlit as st
+import streamlit.components.v1 as components
+from bokeh.embed import file_html
 from bokeh.models import ColumnDataSource, HoverTool, NumeralTickFormatter
 from bokeh.plotting import figure
+from bokeh.resources import CDN
 from bokeh.transform import factor_cmap
 
 from data_loader import filter_data, generate_sample_data
 
-# Page Configuration
+# ==========================================
+# PAGE CONFIGURATION
+# ==========================================
 st.set_page_config(
     page_title="Multi-Tool Viz Hub | CI/CD Dashboard",
     page_icon="📊",
@@ -25,39 +32,162 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom Styling
+# ==========================================
+# CUSTOM MODERN CSS STYLING
+# ==========================================
 st.markdown(
     """
     <style>
-    .main-header {
+    /* Global Styles */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif;
+    }
+
+    /* Main Container Padding */
+    .block-container {
+        padding-top: 1.5rem;
+        padding-bottom: 2.5rem;
+        max-width: 96%;
+    }
+
+    /* Header Banner */
+    .hero-container {
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%);
+        border: 1px solid rgba(99, 102, 241, 0.25);
+        border-radius: 16px;
+        padding: 24px 28px;
+        margin-bottom: 24px;
+        backdrop-filter: blur(8px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+    }
+    
+    .hero-title {
         font-size: 2.2rem;
-        font-weight: 700;
-        background: linear-gradient(90deg, #6366F1, #EC4899);
+        font-weight: 800;
+        letter-spacing: -0.025em;
+        background: linear-gradient(90deg, #818CF8 0%, #C084FC 50%, #F472B6 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        margin-bottom: 0.2rem;
+        margin-bottom: 6px;
     }
-    .sub-header {
-        font-size: 1.05rem;
+    
+    .hero-subtitle {
+        font-size: 1.02rem;
         color: #94A3B8;
-        margin-bottom: 1.8rem;
+        line-height: 1.5;
+        margin-bottom: 14px;
     }
-    .metric-card {
-        background-color: #1E293B;
-        border: 1px solid #334155;
-        border-radius: 12px;
-        padding: 18px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+
+    /* Badges */
+    .badge-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
     }
-    .badge-pill {
-        display: inline-block;
-        padding: 4px 10px;
+    
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
         border-radius: 9999px;
-        font-size: 0.75rem;
+        font-size: 0.78rem;
         font-weight: 600;
-        background-color: #312E81;
-        color: #C7D2FE;
-        margin-right: 6px;
+        letter-spacing: 0.01em;
+    }
+    
+    .badge-primary {
+        background: rgba(99, 102, 241, 0.15);
+        color: #A5B4FC;
+        border: 1px solid rgba(99, 102, 241, 0.35);
+    }
+    
+    .badge-success {
+        background: rgba(16, 185, 129, 0.15);
+        color: #6EE7B7;
+        border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+    
+    .badge-neutral {
+        background: rgba(148, 163, 184, 0.12);
+        color: #CBD5E1;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+    }
+
+    /* KPI Cards */
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .kpi-card {
+        background: linear-gradient(145deg, #1E293B 0%, #0F172A 100%);
+        border: 1px solid #334155;
+        border-radius: 14px;
+        padding: 18px 20px;
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .kpi-card:hover {
+        transform: translateY(-2px);
+        border-color: #6366F1;
+        box-shadow: 0 8px 20px rgba(99, 102, 241, 0.2);
+    }
+
+    .kpi-label {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 600;
+        color: #94A3B8;
+        margin-bottom: 6px;
+    }
+
+    .kpi-value {
+        font-size: 1.85rem;
+        font-weight: 800;
+        color: #F8FAFC;
+        line-height: 1.1;
+    }
+
+    .kpi-subtext {
+        font-size: 0.75rem;
+        color: #64748B;
+        margin-top: 6px;
+    }
+
+    /* Sidebar Enhancement */
+    .css-1d391kg, [data-testid="stSidebar"] {
+        background-color: #0B1120;
+        border-right: 1px solid #1E293B;
+    }
+
+    /* Tabs Styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        background-color: #0F172A;
+        padding: 8px;
+        border-radius: 12px;
+        border: 1px solid #1E293B;
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-weight: 600;
+        color: #94A3B8;
+    }
+
+    .stTabs [aria-selected="true"] {
+        background-color: #1E293B !important;
+        color: #F8FAFC !important;
+        border: 1px solid #6366F1 !important;
     }
     </style>
     """,
@@ -65,53 +195,87 @@ st.markdown(
 )
 
 
+# ==========================================
+# DATA LOADING & CACHING
+# ==========================================
 @st.cache_data
-def load_cached_data() -> pd.DataFrame:
-    """Load and cache the baseline dataset."""
-    return generate_sample_data(n_samples=1500, seed=42)
+def load_data() -> pd.DataFrame:
+    """Generate and cache the baseline dataset."""
+    return generate_sample_data(n_samples=1600, seed=42)
 
 
-# Data Acquisition
-raw_df = load_cached_data()
+raw_df = load_data()
 
-# Sidebar Controls
-st.sidebar.title("🎛️ Dashboard Filters")
-st.sidebar.markdown("Filter real-time data across all visualization engines.")
+# ==========================================
+# SIDEBAR CONTROLS & FILTERING
+# ==========================================
+with st.sidebar:
+    st.markdown("### 🎛️ Control Panel")
+    st.caption("Filter real-time data across all visualization engines.")
 
-selected_years = st.sidebar.multiselect(
-    "Work Years",
-    options=sorted(raw_df["work_year"].unique()),
-    default=sorted(raw_df["work_year"].unique()),
-)
+    # Filter Presets
+    st.markdown("**⚡ Quick Presets**")
+    preset_col1, preset_col2 = st.columns(2)
+    
+    # Store filter preset state in session_state if needed
+    all_jobs = sorted(raw_df["job_title"].unique())
+    ai_jobs = ["Data Scientist", "Machine Learning Engineer", "Data Engineer"]
+    dev_jobs = ["Fullstack Developer", "Frontend Developer", "Backend Developer", "DevOps Engineer", "Cloud Architect"]
 
-selected_exp = st.sidebar.multiselect(
-    "Experience Levels",
-    options=list(raw_df["experience_level"].unique()),
-    default=list(raw_df["experience_level"].unique()),
-)
+    if "selected_jobs" not in st.session_state:
+        st.session_state.selected_jobs = all_jobs[:5]
 
-selected_jobs = st.sidebar.multiselect(
-    "Job Titles",
-    options=sorted(raw_df["job_title"].unique()),
-    default=sorted(raw_df["job_title"].unique())[:5],
-)
+    with preset_col1:
+        if st.button("🤖 Data & AI", use_container_width=True):
+            st.session_state.selected_jobs = ai_jobs
+    with preset_col2:
+        if st.button("💻 Software/Cloud", use_container_width=True):
+            st.session_state.selected_jobs = dev_jobs
 
-remote_filter = st.sidebar.multiselect(
-    "Workplace Arrangement",
-    options=[0, 50, 100],
-    default=[0, 50, 100],
-    format_func=lambda x: "On-site (0%)" if x == 0 else ("Hybrid (50%)" if x == 50 else "Fully Remote (100%)"),
-)
+    selected_years = st.multiselect(
+        "Work Years",
+        options=sorted(raw_df["work_year"].unique()),
+        default=sorted(raw_df["work_year"].unique()),
+    )
 
-st.sidebar.markdown("---")
-st.sidebar.info(
-    "🚀 **Deployment Info**\n\n"
-    "- **Repository**: [GitHub](https://github.com/Hashiravc/viz-dashboard-ci-cd)\n"
-    "- **CI/CD**: GitHub Actions\n"
-    "- **Cloud Target**: Streamlit Community Cloud / Render"
-)
+    selected_exp = st.multiselect(
+        "Experience Levels",
+        options=["Entry-level", "Mid-level", "Senior", "Executive"],
+        default=["Mid-level", "Senior"],
+    )
 
-# Apply Filters
+    selected_jobs = st.multiselect(
+        "Job Titles",
+        options=all_jobs,
+        default=st.session_state.selected_jobs,
+    )
+
+    remote_filter = st.multiselect(
+        "Workplace Modality",
+        options=[0, 50, 100],
+        default=[0, 50, 100],
+        format_func=lambda x: "🏢 On-site (0%)" if x == 0 else ("⚖️ Hybrid (50%)" if x == 50 else "🌐 Fully Remote (100%)"),
+    )
+
+    st.markdown("---")
+    st.markdown("### 🚀 Project Information")
+    st.markdown(
+        """
+        - **Author**: Hashira Belén Vargas Candia
+        - **Repository**: [Hashiravc/viz-dashboard-ci-cd](https://github.com/Hashiravc/viz-dashboard-ci-cd)
+        - **CI/CD**: GitHub Actions
+        - **Hosting**: Streamlit Community Cloud
+        """
+    )
+    st.markdown(
+        '<a href="https://github.com/Hashiravc/viz-dashboard-ci-cd" target="_blank" style="text-decoration:none;">'
+        '<div style="text-align:center; padding:8px; background:#1E293B; border:1px solid #334155; border-radius:8px; color:#F8FAFC; font-weight:600; font-size:0.85rem;">'
+        '⭐ Star on GitHub'
+        '</div></a>',
+        unsafe_allow_html=True,
+    )
+
+# Filter Data
 df = filter_data(
     raw_df,
     years=selected_years,
@@ -120,81 +284,139 @@ df = filter_data(
     remote_options=remote_filter,
 )
 
-if df.empty:
-    st.warning("⚠️ No data available for the current filter selection. Please adjust your filters.")
-    st.stop()
-
-# Header Section
-st.markdown('<div class="main-header">Multi-Tool Data Visualization & Analytics Hub</div>', unsafe_allow_html=True)
+# ==========================================
+# HERO HEADER SECTION
+# ==========================================
 st.markdown(
-    '<div class="sub-header">A comparative architectural showcase of Bokeh, Seaborn, Matplotlib, and Plotly '
-    'orchestrated with Streamlit & Automated CI/CD.</div>',
+    """
+    <div class="hero-container">
+        <div class="hero-title">Multi-Engine Data Visualization Hub</div>
+        <div class="hero-subtitle">
+            An enterprise-grade comparative analytics platform orchestrating <strong>Plotly</strong>, <strong>Seaborn</strong>, 
+            <strong>Matplotlib</strong>, and <strong>Bokeh</strong> inside <strong>Streamlit</strong>, backed by automated GitHub Actions CI/CD.
+        </div>
+        <div class="badge-container">
+            <span class="badge badge-success">🟢 Production Live on Cloud</span>
+            <span class="badge badge-primary">⚡ Automated CI/CD (GitHub Actions)</span>
+            <span class="badge badge-neutral">👤 Author: Hashira Belén Vargas Candia</span>
+            <span class="badge badge-neutral">🐍 Python 3.11+</span>
+        </div>
+    </div>
+    """,
     unsafe_allow_html=True,
 )
 
-# Top KPIs
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-    st.metric("Total Records", f"{len(df):,}", delta=f"{len(df) - len(raw_df)} from base")
-with col2:
-    avg_salary = df["salary_usd"].mean()
-    st.metric("Mean Salary", f"${avg_salary:,.0f}", delta=f"{((avg_salary/raw_df['salary_usd'].mean()) - 1)*100:.1f}%")
-with col3:
-    remote_pct = (df["remote_ratio"] == 100).mean() * 100
-    st.metric("Fully Remote Adoption", f"{remote_pct:.1f}%")
-with col4:
-    top_role = df.groupby("job_title")["salary_usd"].mean().idxmax()
-    st.metric("Top Earning Role", top_role)
+if df.empty:
+    st.warning("⚠️ No data matches the selected filters. Please adjust your criteria in the sidebar.")
+    st.stop()
 
-st.markdown("---")
+# ==========================================
+# TOP KPI METRIC CARDS
+# ==========================================
+avg_salary = df["salary_usd"].mean()
+base_avg = raw_df["salary_usd"].mean()
+salary_diff_pct = ((avg_salary - base_avg) / base_avg) * 100
+remote_pct = (df["remote_ratio"] == 100).mean() * 100
+top_paying_role = df.groupby("job_title")["salary_usd"].mean().idxmax()
+top_role_salary = df.groupby("job_title")["salary_usd"].mean().max()
 
-# Main Visualization Tabs
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+kpi_html = f"""
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <div class="kpi-label">📊 Filtered Records</div>
+        <div class="kpi-value">{len(df):,}</div>
+        <div class="kpi-subtext">{len(df)/len(raw_df)*100:.1f}% of total catalog ({len(raw_df):,})</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-label">💰 Average Compensation</div>
+        <div class="kpi-value">${avg_salary:,.0f}</div>
+        <div class="kpi-subtext">{'▲' if salary_diff_pct >= 0 else '▼'} {abs(salary_diff_pct):.1f}% vs. general market baseline</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-label">🌐 Fully Remote Adoption</div>
+        <div class="kpi-value">{remote_pct:.1f}%</div>
+        <div class="kpi-subtext">{(df['remote_ratio'] == 100).sum():,} engineers working 100% remote</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-label">🏆 Top Earning Specialization</div>
+        <div class="kpi-value" style="font-size: 1.25rem; font-weight:700; color:#A5B4FC; margin-top:4px;">{top_paying_role}</div>
+        <div class="kpi-subtext">Avg: ${top_role_salary:,.0f} / year</div>
+    </div>
+</div>
+"""
+st.markdown(kpi_html, unsafe_allow_html=True)
+
+# ==========================================
+# BOKEH RENDER HELPER (STANDALONE HTML COMPONENT)
+# ==========================================
+def render_bokeh(fig, height=520):
+    """Safely render any Bokeh figure in Streamlit without depending on deprecated st.bokeh_chart."""
+    html_content = file_html(fig, CDN, "Bokeh Visual")
+    components.html(html_content, height=height, scrolling=False)
+
+
+# ==========================================
+# MAIN VISUALIZATION TABS
+# ==========================================
+tab_plotly, tab_seaborn, tab_bokeh, tab_data, tab_compare, tab_cicd = st.tabs([
     "📈 Plotly (Interactive)",
     "🎨 Seaborn & Matplotlib (Statistical)",
-    "⚡ Bokeh (Web Canvas)",
-    "⚖️ Framework Comparison",
-    "🚀 CI/CD & Cloud Architecture",
+    "⚡ Bokeh (HTML5 Canvas)",
+    "📋 Data Explorer & Export",
+    "⚖️ Framework Benchmark",
+    "🚀 CI/CD & Architecture",
 ])
 
-# TAB 1: PLOTLY
-with tab1:
+# ------------------------------------------
+# TAB 1: PLOTLY (INTERACTIVE)
+# ------------------------------------------
+with tab_plotly:
     st.subheader("Interactive Exploratory Data Analysis with Plotly")
-    st.markdown(
-        "Plotly delivers reactive, declarative D3.js-powered visual components with built-in zoom, hover cards, and WebGL rendering."
-    )
+    st.caption("Plotly delivers hardware-accelerated D3.js interactive charts with instant tooltips, zooming, and dynamic re-scaling.")
 
     pcol1, pcol2 = st.columns(2)
 
     with pcol1:
-        # Salary distribution by role boxplot
         fig_box = px.box(
             df,
             x="job_title",
             y="salary_usd",
             color="experience_level",
-            title="Compensation Range by Role & Seniority",
-            labels={"salary_usd": "Salary (USD)", "job_title": "Role"},
+            title="<b>Compensation Range by Role & Seniority</b>",
+            labels={"salary_usd": "Annual Salary (USD)", "job_title": "Role", "experience_level": "Seniority"},
             template="plotly_dark",
             category_orders={"experience_level": ["Entry-level", "Mid-level", "Senior", "Executive"]},
+            color_discrete_sequence=["#38BDF8", "#818CF8", "#F472B6", "#FBBF24"],
         )
-        fig_box.update_layout(xaxis_tickangle=-45, legend_title_text="Seniority")
+        fig_box.update_layout(
+            paper_bgcolor="#0F172A",
+            plot_bgcolor="#1E293B",
+            font=dict(family="Inter, sans-serif", color="#F8FAFC"),
+            xaxis=dict(tickangle=-40, gridcolor="#334155"),
+            yaxis=dict(gridcolor="#334155"),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            margin=dict(t=60, b=50, l=40, r=20),
+        )
         st.plotly_chart(fig_box, use_container_width=True)
 
     with pcol2:
-        # Sunburst hierarchy: Country -> Job Title -> Experience Level
         fig_sunburst = px.sunburst(
             df,
             path=["company_country", "experience_level", "job_title"],
             values="salary_usd",
-            title="Global Talent Distribution Hierarchy",
+            title="<b>Global Talent Hierarchy Distribution</b>",
             template="plotly_dark",
             color="salary_usd",
             color_continuous_scale="Viridis",
         )
+        fig_sunburst.update_layout(
+            paper_bgcolor="#0F172A",
+            font=dict(family="Inter, sans-serif", color="#F8FAFC"),
+            margin=dict(t=60, b=20, l=20, r=20),
+        )
         st.plotly_chart(fig_sunburst, use_container_width=True)
 
-    # Remote vs Salary Scatter / Bubble
+    # Bubble Scatter
     fig_scatter = px.scatter(
         df,
         x="work_life_balance",
@@ -203,46 +425,52 @@ with tab1:
         color="company_size",
         hover_name="job_title",
         facet_col="experience_level",
-        title="Work-Life Balance vs. Salary across Seniority Tiers (Bubble Size = Tech Satisfaction)",
-        labels={"work_life_balance": "Work-Life Rating (1-5)", "salary_usd": "Annual Compensation ($)"},
+        title="<b>Work-Life Balance vs. Compensation by Seniority Tier (Bubble Size = Tech Stack Satisfaction)</b>",
+        labels={"work_life_balance": "Work-Life Balance (1-5)", "salary_usd": "Salary (USD)", "company_size": "Company Scale"},
         template="plotly_dark",
+        color_discrete_sequence=["#38BDF8", "#A78BFA", "#FB7185"],
+    )
+    fig_scatter.update_layout(
+        paper_bgcolor="#0F172A",
+        plot_bgcolor="#1E293B",
+        font=dict(family="Inter, sans-serif", color="#F8FAFC"),
+        margin=dict(t=60, b=40, l=40, r=20),
     )
     st.plotly_chart(fig_scatter, use_container_width=True)
 
-# TAB 2: SEABORN & MATPLOTLIB
-with tab2:
-    st.subheader("Deep Statistical Analysis with Seaborn & Matplotlib")
-    st.markdown(
-        "Seaborn specializes in publication-ready, mathematically rigorous distributions, regression models, and covariance matrices."
-    )
+
+# ------------------------------------------
+# TAB 2: SEABORN & MATPLOTLIB (STATISTICAL)
+# ------------------------------------------
+with tab_seaborn:
+    st.subheader("Statistical Modeling & Rigor with Seaborn & Matplotlib")
+    st.caption("Seaborn produces mathematically rigorous distribution models, covariance matrices, and publication-ready static figures.")
 
     scol1, scol2 = st.columns(2)
 
     with scol1:
-        # Density distribution with KDE
-        plt.style.use("dark_background")
-        fig_sns1, ax1 = plt.subplots(figsize=(8, 5))
+        fig_sns1, ax1 = plt.subplots(figsize=(8, 5), dpi=120)
         sns.histplot(
             data=df,
             x="salary_usd",
             hue="experience_level",
             kde=True,
             palette="mako",
-            alpha=0.4,
+            alpha=0.45,
             ax=ax1,
         )
-        ax1.set_title("Kernel Density Estimation (KDE) of Tech Compensation", fontsize=13, pad=12)
-        ax1.set_xlabel("Salary (USD)", fontsize=11)
-        ax1.set_ylabel("Frequency", fontsize=11)
+        ax1.set_title("Kernel Density Estimation (KDE) of Tech Compensation", fontsize=12, fontweight="bold", pad=12, color="#F8FAFC")
+        ax1.set_xlabel("Salary (USD)", fontsize=10, color="#94A3B8")
+        ax1.set_ylabel("Density / Count", fontsize=10, color="#94A3B8")
         ax1.grid(color="#334155", linestyle="--", linewidth=0.5, alpha=0.7)
+        ax1.tick_params(colors="#CBD5E1")
         fig_sns1.patch.set_facecolor("#0F172A")
         ax1.set_facecolor("#1E293B")
         st.pyplot(fig_sns1)
         plt.close(fig_sns1)
 
     with scol2:
-        # Correlation Heatmap
-        fig_sns2, ax2 = plt.subplots(figsize=(8, 5))
+        fig_sns2, ax2 = plt.subplots(figsize=(8, 5), dpi=120)
         numeric_cols = df[["salary_usd", "remote_ratio", "work_life_balance", "tech_satisfaction", "work_year"]]
         corr = numeric_cols.corr()
         sns.heatmap(
@@ -255,15 +483,17 @@ with tab2:
             square=True,
             cbar_kws={"shrink": 0.8},
             ax=ax2,
+            annot_kws={"size": 9, "color": "#FFFFFF"},
         )
-        ax2.set_title("Feature Covariance Heatmap", fontsize=13, pad=12)
+        ax2.set_title("Covariance & Correlation Matrix", fontsize=12, fontweight="bold", pad=12, color="#F8FAFC")
+        ax2.tick_params(colors="#CBD5E1")
         fig_sns2.patch.set_facecolor("#0F172A")
         ax2.set_facecolor("#1E293B")
         st.pyplot(fig_sns2)
         plt.close(fig_sns2)
 
-    # Violin Plot for Remote Ratios
-    fig_sns3, ax3 = plt.subplots(figsize=(10, 4.5))
+    # Violin Plot
+    fig_sns3, ax3 = plt.subplots(figsize=(11, 4.5), dpi=120)
     sns.violinplot(
         data=df,
         x="remote_ratio",
@@ -274,24 +504,37 @@ with tab2:
         inner="quartile",
         ax=ax3,
     )
-    ax3.set_title("Salary Dispersion Across Remote Modalities & Company Scales", fontsize=13, pad=12)
-    ax3.set_xlabel("Remote Percentage (%)", fontsize=11)
-    ax3.set_ylabel("Salary (USD)", fontsize=11)
+    ax3.set_title("Salary Dispersion Across Remote Modalities & Company Scales", fontsize=12, fontweight="bold", pad=12, color="#F8FAFC")
+    ax3.set_xlabel("Remote Percentage (%)", fontsize=10, color="#94A3B8")
+    ax3.set_ylabel("Compensation (USD)", fontsize=10, color="#94A3B8")
     ax3.grid(color="#334155", linestyle="--", linewidth=0.5, alpha=0.7)
+    ax3.tick_params(colors="#CBD5E1")
     fig_sns3.patch.set_facecolor("#0F172A")
     ax3.set_facecolor("#1E293B")
     st.pyplot(fig_sns3)
     plt.close(fig_sns3)
 
-# TAB 3: BOKEH
-with tab3:
+
+# ------------------------------------------
+# TAB 3: BOKEH (HTML5 CANVAS ENGINE)
+# ------------------------------------------
+with tab_bokeh:
     st.subheader("High-Performance HTML5 Canvas Plotting with Bokeh")
     st.markdown(
-        "Bokeh offers browser-optimized interactive data visualization with custom JavaScript callbacks, HoverTools, and canvas hardware acceleration."
+        """
+        <div style="background:#1E293B; border-left:4px solid #6366F1; padding:12px 16px; border-radius:6px; margin-bottom:16px;">
+            <strong style="color:#C7D2FE;">⚡ Rendered via BokehJS Standalone Canvas</strong><br>
+            <span style="font-size:0.85rem; color:#94A3B8;">
+                Bokeh plots render hardware-accelerated vectors directly onto an HTML5 Canvas, enabling zero-latency panning, 
+                zooming, and hover tooltips without requiring server re-execution.
+            </span>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
-    # Prepare ColumnDataSource
-    b_df = df.sample(min(len(df), 500), random_state=42).copy()
+    # Bokeh Scatter Figure
+    b_df = df.sample(min(len(df), 600), random_state=42).copy()
     b_df["salary_formatted"] = b_df["salary_usd"].apply(lambda x: f"${x:,.0f}")
     source = ColumnDataSource(b_df)
 
@@ -299,184 +542,198 @@ with tab3:
     colors = ["#38BDF8", "#818CF8", "#F472B6", "#FBBF24"]
     color_map = factor_cmap("experience_level", palette=colors, factors=exp_levels)
 
-    # Bokeh Scatter Figure
-    p = figure(
+    p_scatter = figure(
         title="Bokeh Interactive Canvas: Work-Life Balance vs. Annual Compensation",
         x_axis_label="Work-Life Balance Score (1.0 to 5.0)",
         y_axis_label="Salary (USD)",
-        width=900,
-        height=480,
+        height=460,
+        sizing_mode="stretch_width",
         tools="pan,wheel_zoom,box_zoom,reset,save",
         background_fill_color="#1E293B",
         border_fill_color="#0F172A",
     )
+    p_scatter.title.text_color = "#F8FAFC"
+    p_scatter.title.text_font_size = "12pt"
+    p_scatter.xaxis.axis_label_text_color = "#94A3B8"
+    p_scatter.yaxis.axis_label_text_color = "#94A3B8"
+    p_scatter.xaxis.major_label_text_color = "#CBD5E1"
+    p_scatter.yaxis.major_label_text_color = "#CBD5E1"
+    p_scatter.yaxis.formatter = NumeralTickFormatter(format="$0,0")
+    p_scatter.grid.grid_line_color = "#334155"
+    p_scatter.grid.grid_line_dash = [4, 4]
 
-    p.title.text_color = "#F8FAFC"
-    p.title.text_font_size = "13pt"
-    p.xaxis.axis_label_text_color = "#94A3B8"
-    p.yaxis.axis_label_text_color = "#94A3B8"
-    p.xaxis.major_label_text_color = "#E2E8F0"
-    p.yaxis.major_label_text_color = "#E2E8F0"
-    p.yaxis.formatter = NumeralTickFormatter(format="$0,0")
-    p.grid.grid_line_color = "#334155"
-    p.grid.grid_line_dash = [6, 4]
-
-    circle_renderer = p.scatter(
+    circle_r = p_scatter.scatter(
         x="work_life_balance",
         y="salary_usd",
-        size=10,
+        size=9,
         source=source,
         color=color_map,
-        alpha=0.8,
+        alpha=0.85,
         legend_field="experience_level",
     )
 
-    hover = HoverTool(
-        renderers=[circle_renderer],
+    hover_tool = HoverTool(
+        renderers=[circle_r],
         tooltips=[
             ("Role", "@job_title"),
             ("Seniority", "@experience_level"),
             ("Country", "@company_country"),
-            ("Salary", "@salary_formatted"),
-            ("Remote %", "@remote_ratio%"),
+            ("Compensation", "@salary_formatted"),
+            ("Remote", "@remote_ratio%"),
             ("WLB Rating", "@work_life_balance"),
         ],
     )
-    p.add_tools(hover)
-    p.legend.location = "top_left"
-    p.legend.background_fill_color = "#0F172A"
-    p.legend.background_fill_alpha = 0.8
-    p.legend.label_text_color = "#F8FAFC"
+    p_scatter.add_tools(hover_tool)
+    p_scatter.legend.location = "top_left"
+    p_scatter.legend.background_fill_color = "#0F172A"
+    p_scatter.legend.background_fill_alpha = 0.8
+    p_scatter.legend.label_text_color = "#F8FAFC"
 
-    st.bokeh_chart(p, use_container_width=True)
+    render_bokeh(p_scatter, height=480)
 
-    # Aggregated Bokeh Bar Chart
+    # Bokeh Bar Chart
     agg_df = df.groupby("job_title", as_index=False)["salary_usd"].mean().sort_values("salary_usd", ascending=False)
     agg_source = ColumnDataSource(agg_df)
 
     p_bar = figure(
         x_range=list(agg_df["job_title"]),
-        title="Bokeh Canvas: Average Salary by Role",
-        width=900,
+        title="Bokeh Canvas: Mean Salary by Specialization",
         height=380,
+        sizing_mode="stretch_width",
         tools="pan,reset,save",
         background_fill_color="#1E293B",
         border_fill_color="#0F172A",
     )
-    p_bar.vbar(x="job_title", top="salary_usd", width=0.6, source=agg_source, color="#6366F1", alpha=0.9)
+    p_bar.vbar(x="job_title", top="salary_usd", width=0.55, source=agg_source, color="#6366F1", alpha=0.9)
     p_bar.xaxis.major_label_orientation = 0.6
     p_bar.title.text_color = "#F8FAFC"
-    p_bar.xaxis.major_label_text_color = "#E2E8F0"
-    p_bar.yaxis.major_label_text_color = "#E2E8F0"
+    p_bar.title.text_font_size = "12pt"
+    p_bar.xaxis.major_label_text_color = "#CBD5E1"
+    p_bar.yaxis.major_label_text_color = "#CBD5E1"
     p_bar.yaxis.formatter = NumeralTickFormatter(format="$0,0")
     p_bar.grid.grid_line_color = "#334155"
 
-    st.bokeh_chart(p_bar, use_container_width=True)
+    render_bokeh(p_bar, height=400)
 
-# TAB 4: FRAMEWORK COMPARISON MATRIX
-with tab4:
-    st.subheader("Engineering Matrix: Visualization Frameworks Benchmarked")
-    st.markdown(
-        "Selecting the right tool depends on your team's constraints: publication quality, reactive interactivity, or rapid full-stack delivery."
+
+# ------------------------------------------
+# TAB 4: DATA EXPLORER & EXPORT
+# ------------------------------------------
+with tab_data:
+    st.subheader("Interactive Dataset Explorer & Data Export")
+    st.caption("Inspect filtered records, sort attributes, or download the dataset directly as CSV.")
+
+    search_query = st.text_input("🔍 Search by Job Title or Country", placeholder="e.g. Data Scientist, Germany...")
+
+    display_df = df.copy()
+    if search_query:
+        display_df = display_df[
+            display_df["job_title"].str.contains(search_query, case=False, na=False)
+            | display_df["company_country"].str.contains(search_query, case=False, na=False)
+        ]
+
+    st.dataframe(
+        display_df,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "salary_usd": st.column_config.NumberColumn("Salary (USD)", format="$%d"),
+            "work_life_balance": st.column_config.ProgressColumn("Work-Life Balance", min_value=1.0, max_value=5.0),
+            "tech_satisfaction": st.column_config.ProgressColumn("Tech Satisfaction", min_value=1.0, max_value=5.0),
+            "remote_ratio": st.column_config.NumberColumn("Remote %", format="%d%%"),
+        },
     )
 
-    comparison_data = {
-        "Framework": ["Streamlit", "Bokeh", "Seaborn / Matplotlib", "Plotly / Dash", "Shiny for Python"],
-        "Paradigm": [
-            "Pure Python Reactive Scripts",
-            "HTML5 Canvas & JS Callbacks",
-            "Imperative / Declarative Figures",
-            "Declarative JSON & React / D3",
-            "Reactive Computation Graph",
-        ],
-        "Interactivity Level": ["High (Widgets + State)", "Ultra-High (Canvas + JS)", "Static / Low", "High (D3.js / WebGL)", "High (Bi-directional)"],
-        "Learning Curve": ["Very Gentle (10/10)", "Moderate (6/10)", "Gentle to Moderate (7/10)", "Gentle (8/10)", "Moderate (6/10)"],
-        "Performance at Scale": ["Medium (reruns scripts)", "High (Canvas streaming)", "Low (static file generation)", "High (WebGL available)", "High (fine-grained react)"],
-        "Best Use Case": [
-            "Rapid data apps, prototypes, internal tools",
-            "Real-time streaming, big canvas, standalone HTML",
-            "Research papers, statistical modeling, books",
-            "Enterprise analytics, interactive charts, Dash apps",
-            "Complex statistical models, R-to-Python migrations",
+    # Download button
+    csv_buffer = io.StringIO()
+    display_df.to_csv(csv_buffer, index=False)
+    st.download_button(
+        label="📥 Download Filtered Data as CSV",
+        data=csv_buffer.getvalue(),
+        file_name="filtered_tech_compensation.csv",
+        mime="text/csv",
+    )
+
+
+# ------------------------------------------
+# TAB 5: FRAMEWORK BENCHMARK MATRIX
+# ------------------------------------------
+with tab_compare:
+    st.subheader("Architectural Comparison: Python Visualization Ecosystem")
+    st.markdown(
+        "A breakdown of when each visualization tool is best suited in enterprise production architectures:"
+    )
+
+    benchmark_data = {
+        "Library": ["Streamlit", "Plotly / Dash", "Bokeh", "Seaborn / Matplotlib", "Shiny for Python"],
+        "Rendering Backend": ["React + Python Server", "React.js + D3.js + WebGL", "HTML5 Canvas (BokehJS)", "Static Agg / SVG", "Reactive Computation Graph"],
+        "Interactivity Paradigm": ["Full Script Rerun on State Change", "Declarative JSON & Bidirectional", "Hardware Canvas & JS Callbacks", "Static Figure Render", "Fine-Grained Reactive Graph"],
+        "Interactivity Level": ["High (Widgets + Reactive)", "High (D3.js / 3D)", "Ultra-High (Canvas + Zoom)", "Static / Low", "High (Full-Stack)"],
+        "Learning Curve": ["Very Gentle (10/10)", "Gentle (8/10)", "Moderate (6/10)", "Gentle (7/10)", "Moderate (6/10)"],
+        "Best Production Scenario": [
+            "Rapid data apps, prototyping, executive KPI portals",
+            "Complex interactive charts, financial dashboards, Dash web apps",
+            "High-frequency data streaming, big canvas, standalone HTML",
+            "Scientific publications, academic papers, statistical exploratory",
+            "Complex enterprise statistical apps, R-to-Python migrations",
         ],
     }
+    st.dataframe(pd.DataFrame(benchmark_data), use_container_width=True, hide_index=True)
 
-    comp_df = pd.DataFrame(comparison_data)
-    st.dataframe(comp_df, use_container_width=True, hide_index=True)
 
-# TAB 5: CI/CD & CLOUD
-with tab5:
-    st.subheader("Automated CI/CD Pipeline & Cloud Architecture")
-    st.markdown(
-        "This project adheres to enterprise GitOps best practices. Every commit automatically triggers validation, testing, and deployment."
-    )
-
+# ------------------------------------------
+# TAB 6: CI/CD & ARCHITECTURE
+# ------------------------------------------
+with tab_cicd:
+    st.subheader("GitOps CI/CD Automation & Cloud Hosting Architecture")
     st.markdown(
         """
-        ```mermaid
-        graph LR
-            A[Local Commit / Git Push] --> B[GitHub Repository]
-            B --> C[GitHub Actions CI/CD]
-            C --> D[1. Lint & Format Check]
-            C --> E[2. Pytest Test Suite]
-            C --> F[3. Docker Container Build]
-            F --> G{Branch: main?}
-            G -- Yes --> H[Auto Deploy to Streamlit Cloud / Render SaaS]
-            G -- No --> I[PR Status Check Passed]
-        ```
+        This dashboard uses a modern GitOps continuous delivery lifecycle. Every push to the `main` branch
+        triggers automated quality gates on GitHub Actions before updating the public cloud deployment.
         """
     )
 
     col_ci1, col_ci2 = st.columns(2)
 
     with col_ci1:
-        st.markdown("### 🛠️ GitHub Actions Workflow (`ci-cd.yml`)")
-        st.code(
-            """name: CI/CD Dashboard Pipeline
-
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
-jobs:
-  test-and-verify:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-      - name: Run Pytest
-        run: pytest -v tests/
-      - name: Build Docker Image
-        run: docker build -t viz-dashboard .
-""",
-            language="yaml",
+        st.markdown("#### 🔄 Pipeline Stages")
+        st.markdown(
+            """
+            1. **Continuous Integration (CI)**:
+               - Python 3.11 environment initialization with pip dependency caching.
+               - Automated unit testing via `pytest tests/test_dashboard.py`.
+               - Python bytecode compilation check (`py_compile`).
+            2. **Container Packaging**:
+               - Build Docker container layer and verify dependency resolution.
+            3. **Continuous Deployment (CD)**:
+               - Direct GitOps webhook synchronization with **Streamlit Community Cloud**.
+               - Zero-downtime rolling update.
+            """
         )
 
     with col_ci2:
-        st.markdown("### 🌐 Production Deployment Steps")
+        st.markdown("#### 🌐 Production Links")
         st.markdown(
             """
-            1. **Streamlit Community Cloud**:
-               - Connect repo: `https://github.com/Hashiravc/viz-dashboard-ci-cd`
-               - Main file path: `app.py`
-               - Zero config auto-deploy on every push to `main` branch.
-            2. **Docker / Render / Hugging Face Spaces**:
-               - Self-contained container running on port 8501.
-               - Automated webhook trigger on commit.
+            - **Public Repository**: [https://github.com/Hashiravc/viz-dashboard-ci-cd](https://github.com/Hashiravc/viz-dashboard-ci-cd)
+            - **Live Public SaaS**: [https://viz-dashboard-ci-cd.streamlit.app/](https://viz-dashboard-ci-cd.streamlit.app/)
+            - **CI/CD Pipeline Status**: [![CI/CD](https://github.com/Hashiravc/viz-dashboard-ci-cd/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Hashiravc/viz-dashboard-ci-cd/actions/workflows/ci-cd.yml)
             """
         )
 
-# Footer
+# ==========================================
+# FOOTER
+# ==========================================
 st.markdown("---")
 st.markdown(
-    "<center><small>Built with ❤️ using Streamlit, Bokeh, Seaborn, Matplotlib, and Plotly | "
-    "GitHub: <a href='https://github.com/Hashiravc/viz-dashboard-ci-cd' target='_blank'>Hashiravc/viz-dashboard-ci-cd</a></small></center>",
+    """
+    <div style="text-align:center; color:#64748B; font-size:0.85rem; padding-bottom:12px;">
+        Designed & Built by <strong>Hashira Belén Vargas Candia</strong> | 
+        <a href="https://github.com/Hashiravc/viz-dashboard-ci-cd" target="_blank" style="color:#818CF8; text-decoration:none;">
+            GitHub: Hashiravc/viz-dashboard-ci-cd
+        </a> | 
+        Deployed on Streamlit Community Cloud
+    </div>
+    """,
     unsafe_allow_html=True,
 )
