@@ -1,12 +1,3 @@
----
-title: "Building Multi-Engine Data Dashboards with Bokeh, Seaborn, and Plotly: Automated CI/CD Deployment to the Public Cloud"
-published: true
-description: "How I built an enterprise-grade interactive analytics dashboard comparing Bokeh, Seaborn, and Plotly orchestrated with Streamlit, with automated CI/CD and deployment to the public cloud."
-tags: "python, datascience, devops, webdev"
-cover_image: "https://raw.githubusercontent.com/Hashiravc/viz-dashboard-ci-cd/main/.github/assets/banner.png"
-canonical_url: "https://github.com/Hashiravc/viz-dashboard-ci-cd"
----
-
 # Building Multi-Engine Data Dashboards with Bokeh, Seaborn, and Plotly: Automated CI/CD Deployment to the Public Cloud
 
 [![CI/CD Dashboard Pipeline](https://github.com/Hashiravc/viz-dashboard-ci-cd/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Hashiravc/viz-dashboard-ci-cd/actions/workflows/ci-cd.yml)
