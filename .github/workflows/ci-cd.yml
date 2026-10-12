@@ -1,4 +1,4 @@
-name: CI/CD Dashboard Pipeline
+name: CI/CD Multi-Tool Dashboard Pipeline
 
 on:
   push:
@@ -8,12 +8,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  lint-and-test:
+  test-and-lint:
     name: 🧪 Run Quality Checks & Unit Tests
     runs-on: ubuntu-latest
-
     steps:
-      - name: Check out repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Python 3.11
@@ -27,17 +26,20 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Execute Pytest Suite
+      - name: Run Pytest Test Suite
         run: |
           pytest -v tests/
 
+      - name: Validate Application Code Syntax
+        run: |
+          python -m py_compile app.py data_loader.py
+
   docker-build:
     name: 🐳 Docker Container Build & Verify
-    needs: lint-and-test
+    needs: test-and-lint
     runs-on: ubuntu-latest
-
     steps:
-      - name: Check out repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
@@ -51,18 +53,17 @@ jobs:
           tags: viz-dashboard:latest
 
   deploy-cloud:
-    name: 🚀 Automated Cloud Deployment Trigger
-    needs: [lint-and-test, docker-build]
+    name: 🚀 Automated Cloud Deployment Verification
+    needs: [test-and-lint, docker-build]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
-
     steps:
-      - name: Trigger Webhook / Validate GitOps Sync
+      - name: Confirm GitOps Automation Readiness
         run: |
-          echo "============================================="
-          echo "CI/CD checks passed successfully!"
-          echo "Triggering automated GitOps deployment sync..."
-          echo "Cloud Provider: Streamlit Community Cloud / Render"
+          echo "======================================================="
+          echo "All CI/CD quality checks passed!"
+          echo "Ready for zero-downtime deployment on Public Cloud / SaaS."
+          echo "Target Provider: Streamlit Community Cloud / Render"
           echo "Target Repo: ${{ github.repository }}"
           echo "Commit SHA: ${{ github.sha }}"
-          echo "============================================="
+          echo "======================================================="
